@@ -23,12 +23,9 @@ class Translation extends Model
     public const STATUS_SAVED = 0;
     public const STATUS_CHANGED = 1;
 
-    protected $table = 'ltm_translations';
-
-    protected $connection = 'mysql';
-
     public function __construct()
     {
+        parent::__construct();
         $this->connection = config('translation-manager.database.connection');
         $this->table = config('translation-manager.database.table');
     }
