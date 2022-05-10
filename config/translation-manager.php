@@ -11,7 +11,10 @@ return [
     */
     'route' => [
         'prefix' => 'translations',
-        'middleware' => 'auth',
+        'middleware' => [
+            'web',
+            'auth'
+        ],
     ],
 
     /*
@@ -37,7 +40,7 @@ return [
 
     'database' => [
         'table'         => env('TRANSLATION_TABLE_NAME', 'ltm_translations'),
-        'connection'    => env('TRANSLATION_CONNECTION', 'mysql'),
+        'connection'    => env('TRANSLATION_CONNECTION', env('DB_CONNECTION', 'system')),
     ],
 
     /**
@@ -75,7 +78,7 @@ return [
      *
      * @type boolean
      */
-    'pagination_enabled' => false,
+    'pagination_enabled' => true,
 
     /*
      * Define number of translations per page

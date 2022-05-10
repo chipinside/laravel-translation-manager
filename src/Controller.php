@@ -148,10 +148,10 @@ class Controller extends BaseController
                 $translation->locale = $locale;
                 $translation->group = $group;
                 $translation->key = $key;
-            } else {
-                $translation->value = (string) $value ?: null;
-                $translation->status = Translation::STATUS_CHANGED;
             }
+
+            $translation->value = (string) $value ?: null;
+            $translation->status = Translation::STATUS_CHANGED;
 
             $translation->save();
 

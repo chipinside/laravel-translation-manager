@@ -36,7 +36,7 @@
                                data-locale="{{ $locale }}" data-name="{{ $locale }}|{{ $key }}"
                                id="username" data-type="textarea" data-pk="{{ $t ? $t->id : 0 }}"
                                data-url="{{ $editUrl }}"
-                               data-title="Enter translation">{{ $t ? htmlentities($t->value, ENT_QUOTES, 'UTF-8', false) : '' }}</a>
+                               data-title="Enter translation">{{ $t ? $t->value : '' }}</a>
                         </td>
                     @endforeach
                     @if ($deleteEnabled)

@@ -22,9 +22,9 @@ This way, translations can be saved in git history and no overhead is introduced
 
 ## Installation
 
-Require this package in your composer.json and run composer update (or run `composer require barryvdh/laravel-translation-manager` directly):
+Require this package in your composer.json and run composer update (or run `composer require chipinside/laravel-translation-manager` directly):
 
-    composer require barryvdh/laravel-translation-manager
+    composer require chipinside/laravel-translation-manager
 
 
 You need to run the migrations for this package.
