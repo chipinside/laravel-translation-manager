@@ -2,6 +2,7 @@
 
 namespace Barryvdh\TranslationManager;
 
+use Illuminate\Contracts\Filesystem\FileNotFoundException;
 use Lang;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
@@ -11,23 +12,25 @@ use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Contracts\Foundation\Application;
 use Barryvdh\TranslationManager\Models\Translation;
 use Barryvdh\TranslationManager\Events\TranslationsExportedEvent;
+use Symfony\Component\Finder\SplFileInfo;
+use const PHP_EOL;
 
 class Manager
 {
     public const JSON_GROUP = '_json';
 
     /**
-     * @var \Illuminate\Contracts\Foundation\Application
+     * @var Application
      */
     protected $app;
 
     /**
-     * @var \Illuminate\Filesystem\Filesystem
+     * @var Filesystem
      */
     protected $files;
 
     /**
-     * @var \Illuminate\Contracts\Events\Dispatcher
+     * @var Dispatcher
      */
     protected $events;
 
@@ -52,7 +55,12 @@ class Manager
     protected $ignoreFilePath;
 
     /**
-     * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
+     * @var string
+     */
+    public static $translationModel = Translation::class;
+
+    /**
+     * @throws FileNotFoundException
      */
     public function __construct(Application $app, Filesystem $files, Dispatcher $events)
     {
@@ -66,7 +74,27 @@ class Manager
     }
 
     /**
-     * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
+     * Get the translation model class name.
+     *
+     * @return string
+     */
+    public static function translationModel()
+    {
+        return static::$translationModel;
+    }
+
+    /**
+     * Get a new translation model instance.
+     *
+     * @return Translation
+     */
+    public static function translation()
+    {
+        return new static::$translationModel;
+    }
+
+    /**
+     * @throws FileNotFoundException
      */
     protected function getIgnoredLocales()
     {
@@ -160,14 +188,14 @@ class Manager
             return false;
         }
         $value = (string) $value;
-        $translation = Translation::firstOrNew([
+        $translation = static::translation()->query()->firstOrNew([
             'locale' => $locale,
             'group' => $group,
             'key' => $key,
         ]);
 
         // Check if the database is different from the files
-        $newStatus = $translation->value === $value ? Translation::STATUS_SAVED : Translation::STATUS_CHANGED;
+        $newStatus = $translation->value === $value ? static::translation()::STATUS_SAVED : static::translation()::STATUS_CHANGED;
         if ($newStatus !== (int) $translation->status) {
             $translation->status = $newStatus;
         }
@@ -214,7 +242,7 @@ class Manager
         $finder = new Finder();
         $finder->in($path)->exclude('storage')->exclude('vendor')->name('*.php')->name('*.twig')->name('*.vue')->files();
 
-        /** @var \Symfony\Component\Finder\SplFileInfo $file */
+        /** @var SplFileInfo $file */
         foreach ($finder as $file) {
             // Search the current file for the pattern
             if (preg_match_all("/$groupPattern/siU", $file->getContents(), $matches)) {
@@ -265,14 +293,14 @@ class Manager
     public function missingKey($namespace, $group, $key): void
     {
         if (!in_array($group, $this->config['exclude_groups'], true)) {
-            $translation = Translation::where([
+            $translation = static::translation()->query()->where([
                 'locale' => $this->app['config']['app.locale'],
                 'group' => $group,
                 'key' => $key,
             ])->first();
 
             if (is_null($translation)) {
-                $translation = new Translation;
+                $translation = static::translation();
                 $translation->locale = $this->app['config']['app.locale'];
                 $translation->group = $group;
                 $translation->key = $key;
@@ -308,7 +336,7 @@ class Manager
                     $vendor = true;
                 }
 
-                $tree = $this->makeTree(Translation::ofTranslatedGroup($group)
+                $tree = $this->makeTree(static::translation()->query()->ofTranslatedGroup($group)
                     ->orderByGroupKeys(Arr::get($this->config, 'sort_keys', false))
                     ->get());
 
@@ -338,16 +366,16 @@ class Manager
 
                         $path .= DIRECTORY_SEPARATOR.$locale.DIRECTORY_SEPARATOR.$group.'.php';
 
-                        $output = "<?php\n\nreturn ".$this->export($translations, true).';'.\PHP_EOL;
+                        $output = "<?php\n\nreturn ".$this->export($translations, true).';'. PHP_EOL;
                         $this->files->put($path, $output);
                     }
                 }
-                Translation::ofTranslatedGroup($group)->update(['status' => Translation::STATUS_SAVED]);
+                static::translation()->query()->ofTranslatedGroup($group)->update(['status' => static::translation()::STATUS_SAVED]);
             }
         }
 
         if ($json) {
-            $tree = $this->makeTree(Translation::ofTranslatedGroup(self::JSON_GROUP)
+            $tree = $this->makeTree(static::translation()->query()->ofTranslatedGroup(self::JSON_GROUP)
                                                 ->orderByGroupKeys(Arr::get($this->config, 'sort_keys', false))
                                                 ->get(), true);
 
@@ -360,7 +388,7 @@ class Manager
                 }
             }
 
-            Translation::ofTranslatedGroup(self::JSON_GROUP)->update(['status' => Translation::STATUS_SAVED]);
+            static::translation()->query()->ofTranslatedGroup(self::JSON_GROUP)->update(['status' => static::translation()::STATUS_SAVED]);
         }
 
         $this->events->dispatch(new TranslationsExportedEvent());
@@ -368,7 +396,7 @@ class Manager
 
     public function exportAllTranslations(): void
     {
-        $groups = Translation::whereNotNull('value')->selectDistinctGroup()->get('group');
+        $groups = static::translation()->query()->whereNotNull('value')->selectDistinctGroup()->get('group');
 
         foreach ($groups as $group) {
             if (self::JSON_GROUP === $group->group) {
@@ -415,12 +443,12 @@ class Manager
 
     public function cleanTranslations(): void
     {
-        Translation::whereNull('value')->delete();
+        static::translation()->query()->whereNull('value')->delete();
     }
 
     public function truncateTranslations(): void
     {
-        Translation::truncate();
+        static::translation()->query()->truncate();
     }
 
     public function getLocales(): array
@@ -428,7 +456,7 @@ class Manager
         if (empty($this->locales)) {
             $locales = array_merge(
                 [config('app.locale')],
-                Translation::groupBy('locale')->pluck('locale')->toArray()
+                static::translation()->query()->groupBy('locale')->pluck('locale')->toArray()
             );
             foreach ($this->files->directories($this->app->langPath()) as $localeDir) {
                 if (($name = $this->files->name($localeDir)) !== 'vendor') {
@@ -444,7 +472,7 @@ class Manager
     }
 
     /**
-     * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
+     * @throws FileNotFoundException
      */
     public function addLocale($locale): bool
     {
@@ -470,7 +498,9 @@ class Manager
     }
 
     /**
-     * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
+     * @throws FileNotFoundException
+     *
+     * @return false|int
      */
     public function removeLocale($locale)
     {
@@ -481,7 +511,7 @@ class Manager
         $this->saveIgnoredLocales();
         $this->ignoreLocales = $this->getIgnoredLocales();
 
-        Translation::where('locale', $locale)->delete();
+        return static::translation()->query()->where('locale', $locale)->delete();
     }
 
     public function getConfig($key = null)

@@ -5,12 +5,8 @@ namespace Barryvdh\TranslationManager;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
-use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Contracts\View\Factory;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Contracts\Foundation\Application;
-use Barryvdh\TranslationManager\Models\Translation;
 use Illuminate\Routing\Controller as BaseController;
 
 class Controller extends BaseController
@@ -46,7 +42,7 @@ class Controller extends BaseController
     public function getIndex($group = null)
     {
         $locales = $this->manager->getLocales();
-        $groups = Translation::groupBy('group');
+        $groups = Manager::translation()->query()->groupBy('group');
         $excludedGroups = $this->manager->getConfig('exclude_groups');
         if ($excludedGroups) {
             $groups->whereNotIn('group', $excludedGroups);
@@ -57,9 +53,16 @@ class Controller extends BaseController
             $groups = $groups->all();
         }
         $groups = ['' => 'Choose a group'] + $groups;
-        $numChanged = Translation::where('group', $group)->where('status', Translation::STATUS_CHANGED)->count();
+        $numChanged = Manager::translation()->query()
+            ->where('group', $group)
+            ->where('status', Manager::translation()::STATUS_CHANGED)
+            ->count();
 
-        $allTranslations = Translation::where('group', $group)->orderBy('key', 'asc')->get();
+        $allTranslations = Manager::translation()->query()
+            ->where('group', $group)
+            ->orderBy('key', 'asc')
+            ->get();
+
         $numTranslations = count($allTranslations);
         $translations = [];
         foreach ($allTranslations as $translation) {
@@ -102,7 +105,7 @@ class Controller extends BaseController
     protected function loadLocales(): array
     {
         //Set the default locale as the first one.
-        $locales = Translation::groupBy('locale')
+        $locales = Manager::translation()->query()->groupBy('locale')
             ->select('locale')
             ->get()
             ->pluck('locale');
@@ -137,21 +140,21 @@ class Controller extends BaseController
 
             [$locale, $key] = explode('|', $name, 2);
 
-            $translation = Translation::where([
+            $translation = Manager::translation()->query()->where([
                 'locale' => $locale,
                 'group' => $group,
                 'key' => $key,
             ])->first();
 
             if (is_null($translation)) {
-                $translation = new Translation;
+                $translation = Manager::translation();
                 $translation->locale = $locale;
                 $translation->group = $group;
                 $translation->key = $key;
             }
 
             $translation->value = (string) $value ?: null;
-            $translation->status = Translation::STATUS_CHANGED;
+            $translation->status = Manager::translation()::STATUS_CHANGED;
 
             $translation->save();
 
@@ -162,7 +165,10 @@ class Controller extends BaseController
     public function postDelete($group, $key)
     {
         if ($this->manager->getConfig('delete_enabled') && !in_array($group, $this->manager->getConfig('exclude_groups'), true)) {
-            Translation::where('group', $group)->where('key', $key)->delete();
+            Manager::translation()->query()
+                ->where('group', $group)
+                ->where('key', $key)
+                ->delete();
 
             return ['status' => 'ok'];
         }
@@ -240,9 +246,17 @@ class Controller extends BaseController
         if ($request->has('with-translations') && $request->has('base-locale') && in_array($request->input('base-locale'), $locales) && $request->has('file') && in_array($newLocale, $locales)) {
             $base_locale = $request->get('base-locale');
             $group = $request->get('file');
-            $base_strings = Translation::where('group', $group)->where('locale', $base_locale)->get();
+            $base_strings = Manager::translation()->query()
+                ->where('group', $group)
+                ->where('locale', $base_locale)
+                ->get();
+
             foreach ($base_strings as $base_string) {
-                $base_query = Translation::where('group', $group)->where('locale', $newLocale)->where('key', $base_string->key);
+                $base_query = Manager::translation()->query()
+                    ->where('group', $group)
+                    ->where('locale', $newLocale)
+                    ->where('key', $base_string->key);
+
                 if ($base_query->exists() && $base_query->whereNotNull('value')->exists()) {
                     // Translation already exists. Skip
                     continue;

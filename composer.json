@@ -23,6 +23,7 @@
   ],
   "require": {
     "php": ">=7.4",
+    "ext-json": "*",
     "illuminate/support": "^8|^9",
     "illuminate/translation": "^8|^9",
     "symfony/finder": "^5|^6"

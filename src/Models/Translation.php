@@ -2,6 +2,7 @@
 
 namespace Barryvdh\TranslationManager\Models;
 
+use Carbon\Carbon;
 use DB;
 use Illuminate\Database\Eloquent\Model;
 
@@ -14,21 +15,16 @@ use Illuminate\Database\Eloquent\Model;
  * @property string         $group
  * @property string         $key
  * @property string         $value
- * @property \Carbon\Carbon $created_at
- * @property \Carbon\Carbon $updated_at
+ * @property Carbon $created_at
+ * @property Carbon $updated_at
+ *
+ * @mixin Model
  */
 class Translation extends Model
 {
 
     public const STATUS_SAVED = 0;
     public const STATUS_CHANGED = 1;
-
-    public function __construct()
-    {
-        parent::__construct();
-        $this->connection = config('translation-manager.database.connection');
-        $this->table = config('translation-manager.database.table');
-    }
 
     protected $guarded = ['id', 'created_at', 'updated_at'];
 

@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -10,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create(config('translation-manager.database.table'), static function (Blueprint $table) {
+        Schema::create('ltm_translations', static function (Blueprint $table) {
             $table->collation = 'utf8mb4_bin';
             $table->bigIncrements('id');
             $table->integer('status')->default(0);
@@ -27,6 +28,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::drop(config('translation-manager.database.table'));
+        Schema::drop('ltm_translations');
     }
 };
