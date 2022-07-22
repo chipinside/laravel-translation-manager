@@ -30,20 +30,20 @@ Require this package in your composer.json and run composer update (or run `comp
 You need to run the migrations for this package.
 
 ```
-php artisan vendor:publish --provider="Barryvdh\TranslationManager\ManagerServiceProvider" --tag=migrations
+php artisan vendor:publish --provider="Barryvdh\TranslationManager\ManagerServiceProvider" --tag=translations-migrations
 php artisan migrate
 ```
 
 You need to publish the config file for this package. This will add the file `config/translation-manager.php`, where you can configure this package.
 
 ```
-php artisan vendor:publish --provider="Barryvdh\TranslationManager\ManagerServiceProvider" --tag=config
+php artisan vendor:publish --provider="Barryvdh\TranslationManager\ManagerServiceProvider" --tag=translations-config
 ```
 
 In order to edit the default template, the views must be published as well. The views will then be placed in `resources/views/vendor/translation-manager`.
 
 ```
-php artisan vendor:publish --provider="Barryvdh\TranslationManager\ManagerServiceProvider" --tag=views
+php artisan vendor:publish --provider="Barryvdh\TranslationManager\ManagerServiceProvider" --tag=translations-views
 ```
 
 Routes are added in the ServiceProvider. You can set the group parameters for the routes in the configuration.

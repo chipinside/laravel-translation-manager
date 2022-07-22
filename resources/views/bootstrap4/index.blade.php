@@ -1,5 +1,6 @@
 @extends(config('translation-manager.layout'))
-@php($controller = \Barryvdh\TranslationManager\Controller::class)
+@php($controller = \Barryvdh\TranslationManager\Http\Controllers\Controller::class)
+@php($user = app('request')->user())
 
 @section('documentTitle')
     Translation Manager

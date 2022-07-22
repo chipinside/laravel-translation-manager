@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-use Barryvdh\TranslationManager\Controller;
+use Barryvdh\TranslationManager\Http\Controllers\Controller;
 
-$config = array_merge(config('translation-manager.route'), ['namespace' => '\Barryvdh\TranslationManager']);
+$config = array_merge(config('translation-manager.route'), ['namespace' => '\Barryvdh\TranslationManager\Http\Controllers']);
 Route::group($config, function ($router) {
     $router->get('view/{groupKey?}', [Controller::class, 'getView'])->where('groupKey', '.*');
     $router->get('/{groupKey?}', [Controller::class, 'getIndex'])->where('groupKey', '.*');

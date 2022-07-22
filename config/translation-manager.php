@@ -1,5 +1,7 @@
 <?php
 
+use Barryvdh\TranslationManager\Http\Middleware\Authenticate;
+
 return [
     /*
     |--------------------------------------------------------------------------
@@ -13,7 +15,8 @@ return [
         'prefix' => 'translations',
         'middleware' => [
             'web',
-            'auth'
+            'auth',
+            Authenticate::class
         ],
     ],
 
@@ -84,13 +87,13 @@ return [
 
     /* ------------------------------------------------------------------------------------------------
      | Set Views options
-     | --------------------------å----------------------------------------------------------------------
+     | ------------------------------------------------------------------------------------------------
      | Here you can set The "extends" blade of index.blade.php
     */
     'layout' => 'translation-manager::layout',
 
     /*
-     * Choose which  template to use [bootstrap3, bootstrap4, bootstrap5, tailwind3 ]
+     * Choose which  template to use [ bootstrap4, bootstrap5, tailwind3 ]
      */
     'template' => 'tailwind3',
 ];

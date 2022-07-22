@@ -22,7 +22,7 @@
     }
   ],
   "require": {
-    "php": ">=7.4",
+    "php": ">=8.0",
     "ext-json": "*",
     "illuminate/support": "^8|^9",
     "illuminate/translation": "^8|^9",
@@ -51,7 +51,10 @@
     "laravel": {
       "providers": [
         "Barryvdh\\TranslationManager\\ManagerServiceProvider"
-      ]
+      ],
+      "aliases": {
+        "Translator": "Barryvdh\\TranslationManager\\Translator"
+      }
     }
   },
   "scripts": {

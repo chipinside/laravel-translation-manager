@@ -1,3 +1,4 @@
+@if(Translator::checkManageLocalesPermission($user))
 <div class="card mt-2">
     <div class="card-body">
         <fieldset>
@@ -39,3 +40,4 @@
         </fieldset>
     </div>
 </div>
+@endif

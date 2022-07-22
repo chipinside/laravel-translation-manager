@@ -8,11 +8,6 @@
     <title>@yield('documentTitle')</title>
     <meta name="csrf-token" content="{{ csrf_token() }}"/>
     @switch(config('translation-manager.template'))
-        @case('bootstrap3')
-            <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css"
-                  integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu"
-                  crossorigin="anonymous">
-        @break
         @case('bootstrap4')
             <link href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet"
                   integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN"
@@ -83,13 +78,6 @@
 </div>
 <span class="javascripts">
         @switch(config('translation-manager.template'))
-            @case('bootstrap3')
-                <script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
-                <!-- Latest compiled and minified JavaScript -->
-                <script src="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"
-                        integrity="sha384-aJ21OjlMXNL5UyIl/XNwTMqvzeRMZH2w8c5cRVpzpU8Y5bApTppSuUkhZXN0VxHd"
-                        crossorigin="anonymous"></script>
-            @break
             @case('bootstrap4')
                 <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"
                         integrity="sha384-vtXRMe3mGCbOeY7l30aIg8H9p3GdeSe4IFlP6G8JMa7o7lXvnz3GFKzPxzJdPfGK"

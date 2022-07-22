@@ -1,8 +1,13 @@
+@if(
+    (!isset($group) and (Translator::checkFindPermission($user) or Translator::checkImportPermission($user)))
+    or (isset($group) and Translator::checkExportPermission($user))
+)
 <div class="card">
     <div class="card-body">
         <p>Warning, translations are not visible until they are exported back to the app/lang file, using <code>php artisan translation:export</code> command or publish button.</p>
 
         @if(!isset($group))
+            @if(Translator::checkImportPermission($user))
             <form class="form-import" method="POST" action="{{ action($controller . '@postImport') }}" data-remote="true" role="form" aria-label="Import">
                 @csrf()
                 <div class="row mb-3">
@@ -17,6 +22,8 @@
                     </div>
                 </div>
             </form>
+            @endif
+            @if(Translator::checkFindPermission($user))
             <form class="form-find" method="POST" action="{{ action($controller.'@postFind') }}" data-remote="true" role="form"
                   data-confirm="Are you sure you want to scan you app folder? All found translation keys will be added to the database."
                   aria-label="Scan folders"
@@ -24,7 +31,9 @@
                 @csrf()
                 <button type="submit" class="btn btn-info" data-disable-with="Searching...">Find translations in files</button>
             </form>
+            @endif
         @else
+            @if(Translator::checkExportPermission($user))
             <form class="form-inline form-publish" method="POST" action="{{ action($controller.'@postPublish', $group) }}" data-remote="true" role="form"
                   data-confirm="Are you sure you want to publish the translations group '{{ $group }}'? This will overwrite existing language files."
                   aria-label="Publish"
@@ -35,6 +44,8 @@
                     <a href="{{ action($controller.'@getIndex') }}" class="btn btn-secondary">Back</a>
                 </div>
             </form>
+            @endif
         @endif
     </div>
 </div>
+@endif

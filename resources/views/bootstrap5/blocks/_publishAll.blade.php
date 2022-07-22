@@ -1,3 +1,4 @@
+@if(Translator::checkExportPermission($user))
 <div class="card mt-2">
     <div class="card-body">
         <fieldset>
@@ -11,3 +12,4 @@
         </fieldset>
     </div>
 </div>
+@endif

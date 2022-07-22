@@ -1,13 +1,14 @@
 <?php
 
-namespace Barryvdh\TranslationManager;
+namespace Barryvdh\TranslationManager\Http\Controllers;
 
-use Illuminate\Support\Str;
-use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
+use Barryvdh\TranslationManager\Manager;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Routing\Controller as BaseController;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 class Controller extends BaseController
 {
@@ -78,9 +79,7 @@ class Controller extends BaseController
             $prefix = $this->manager->getConfig('route')['prefix'];
             $path = url("$prefix/view/$group");
 
-            if ('bootstrap3' === $this->manager->getConfig('template')) {
-                LengthAwarePaginator::useBootstrapThree();
-            } elseif ('bootstrap4' === $this->manager->getConfig('template')) {
+            if ('bootstrap4' === $this->manager->getConfig('template')) {
                 LengthAwarePaginator::useBootstrap();
             } elseif ('bootstrap5' === $this->manager->getConfig('template')) {
                 LengthAwarePaginator::useBootstrap();

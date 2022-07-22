@@ -11,6 +11,7 @@
                     @endforeach
                 </select>
             </div>
+            @if(Translator::checkCreateGroupPermission($user))
             <div class="form-group">
                 <label>Enter a new group name and start edit translations in that group</label>
                 <input type="text" class="form-control" name="new-group"/>
@@ -18,6 +19,7 @@
             <div class="form-group">
                 <input type="submit" class="btn btn-primary" name="add-group" value="Add and edit keys"/>
             </div>
+            @endif
         </form>
     </div>
 </div>

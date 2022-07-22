@@ -1,3 +1,4 @@
+@if(Translator::checkManageLocalesPermission($user))
 <div class="bg-white border border-gray-300 overflow-hidden shadow rounded-lg mt-2">
     <div class="px-4 py-5 sm:p-6">
         <fieldset>
@@ -37,3 +38,4 @@
         </fieldset>
     </div>
 </div>
+@endif

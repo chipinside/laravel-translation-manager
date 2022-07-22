@@ -17,15 +17,58 @@ class ManagerServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        // Register the config publish path
-        $configPath = __DIR__.'/../config/translation-manager.php';
-        $this->mergeConfigFrom($configPath, 'translation-manager');
-        $this->publishes([$configPath => config_path('translation-manager.php')], 'config');
+        $this->configure();
 
         $this->app->singleton('translation-manager', function ($app) {
             return $app->make(Manager::class);
         });
 
+        $this->registerCommands();
+    }
+
+    /**
+     * Bootstrap the application events.
+     */
+    public function boot(): void
+    {
+        $this->registerResources();
+        $this->offerPublishing();
+        $this->registerRoutes();
+    }
+
+    protected function registerResources()
+    {
+        $this->loadViewsFrom(__DIR__.'/../resources/views', 'translation-manager');
+    }
+
+    protected function registerRoutes(): void
+    {
+        $this->loadRoutesFrom(__DIR__.'/routes.php');
+    }
+
+    protected function offerPublishing()
+    {
+        if ($this->app->runningInConsole()) {
+            $this->publishes([
+                __DIR__.'/../stubs/TranslationsServiceProvider.stub' => app_path('Providers/TranslationsServiceProvider.php')
+            ], 'translations-provider');
+
+            $this->publishes([
+                __DIR__.'/../config/translation-manager.php' => config_path('translation-manager.php')
+            ], 'translations-config');
+
+            $this->publishes([
+                __DIR__.'/../resources/views' => resource_path('views/vendor/translation-manager'),
+            ], 'translations-views');
+
+            $this->publishes([
+                __DIR__.'/../database/migrations' => database_path('migrations'),
+            ], 'translations-migrations');
+        }
+    }
+
+    protected function registerCommands()
+    {
         $this->app->singleton('command.translation-manager.reset', function ($app) {
             return new Console\ResetCommand($app['translation-manager']);
         });
@@ -52,23 +95,9 @@ class ManagerServiceProvider extends ServiceProvider
         $this->commands('command.translation-manager.clean');
     }
 
-    /**
-     * Bootstrap the application events.
-     */
-    public function boot(): void
+    protected function configure()
     {
-        $viewPath = __DIR__.'/../resources/views';
-        $this->loadViewsFrom($viewPath, 'translation-manager');
-        $this->publishes([
-            $viewPath => base_path('resources/views/vendor/translation-manager'),
-        ], 'views');
-
-        $migrationPath = __DIR__.'/../database/migrations';
-        $this->publishes([
-            $migrationPath => base_path('database/migrations'),
-        ], 'migrations');
-
-        $this->loadRoutesFrom(__DIR__.'/routes.php');
+        $this->mergeConfigFrom(__DIR__.'/../config/translation-manager.php', 'translation-manager');
     }
 
     /**
