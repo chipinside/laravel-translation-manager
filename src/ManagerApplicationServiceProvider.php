@@ -48,6 +48,10 @@ class ManagerApplicationServiceProvider extends ServiceProvider
         });
     }
 
+    protected function setConnection(string $connection) {
+        config(['translation-manager.connection' => $connection]);
+    }
+
     /**
      * Register the Translation gates.
      *

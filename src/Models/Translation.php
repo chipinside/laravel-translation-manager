@@ -59,4 +59,11 @@ class Translation extends Model
 
         return $query->select(DB::raw($select));
     }
+
+    public function getConnectionName()
+    {
+        return config('translation-manager.connection') ?? $this->connection;
+    }
+
+
 }

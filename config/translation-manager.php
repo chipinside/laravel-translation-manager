@@ -27,6 +27,14 @@ return [
      */
     'delete_enabled' => true,
 
+
+    /*
+     * The database connection where the translations will be stored for localization
+     *
+     * @type string
+     */
+    'connection' => env('TRANSLATIONS_DB_CONNECTION', env('DB_CONNECTION', 'mysql')),
+
     /*
      * Exclude specific groups from Laravel Translation Manager.
      * This is useful if, for example, you want to avoid editing the official Laravel language files.
