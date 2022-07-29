@@ -96,7 +96,7 @@ class Controller extends BaseController
             ->with('group', $group)
             ->with('numTranslations', $numTranslations)
             ->with('numChanged', $numChanged)
-            ->with('editUrl', $group ? action('\Barryvdh\TranslationManager\Controller@postEdit', [$group]) : null)
+            ->with('editUrl', $group ? action([Controller::class,'postEdit'], [$group]) : null)
             ->with('paginationEnabled', $this->manager->getConfig('pagination_enabled'))
             ->with('deleteEnabled', $this->manager->getConfig('delete_enabled'));
     }
@@ -205,7 +205,7 @@ class Controller extends BaseController
     {
         $group = str_replace('.', '', $request->input('new-group'));
         if ($group) {
-            return redirect()->action('\Barryvdh\TranslationManager\Controller@getView', $group);
+            return redirect()->action([Controller::class,'getView'], $group);
         }
 
         return redirect()->back();
