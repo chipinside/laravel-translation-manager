@@ -2,6 +2,7 @@
 
 namespace Barryvdh\TranslationManager;
 
+use Barryvdh\TranslationManager\Events\TranslationsBeforeImportEvent;
 use Illuminate\Contracts\Filesystem\FileNotFoundException;
 use Lang;
 use Illuminate\Support\Arr;
@@ -115,6 +116,8 @@ class Manager
             $base = $this->app['path.lang'];
             $vendor = false;
         }
+
+        $this->events->dispatch(new TranslationsBeforeImportEvent($replace, $base, $import_group));
 
         foreach ($this->files->directories($base) as $langPath) {
             $locale = basename($langPath);
