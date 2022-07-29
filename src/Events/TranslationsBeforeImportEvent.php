@@ -14,8 +14,8 @@ class TranslationsBeforeImportEvent
      * Create a new event instance.
      */
     public function __construct(
-        protected bool $replace,
-        protected string $base,
-        protected string $import_group
+        public readonly bool $replace,
+        public readonly string $base,
+        public readonly string $import_group
     ) {}
 }
