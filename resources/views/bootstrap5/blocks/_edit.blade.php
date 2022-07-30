@@ -12,7 +12,7 @@
         </form>
         <hr>
         @endif
-        <h4>Total: {{ $numTranslations }}, changed: {{ $numChanged }}</h4>
+        <h4>Total: {{ $numTranslations }}</h4>
         <table class="table">
             <thead>
                 <tr>
@@ -34,7 +34,7 @@
                         @php($t = isset($translation[$locale]) ? $translation[$locale] : null)
                         <td>
                             <a href="#edit"
-                               class="editable status-{{ $t ? $t->status : 0 }} locale-{{ $locale }}"
+                               class="editable locale-{{ $locale }}"
                                data-locale="{{ $locale }}" data-name="{{ $locale }}|{{ $key }}"
                                id="username" data-type="textarea" data-pk="{{ $t ? $t->id : 0 }}"
                                data-url="{{ $editUrl }}"

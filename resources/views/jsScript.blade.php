@@ -320,9 +320,6 @@
 
         $('.editable').editable().on('hidden', function (e, reason) {
             const locale = $(this).data('locale');
-            if (reason === 'save') {
-                $(this).removeClass('status-0').addClass('font-weight-bold');
-            }
             if (reason === 'save' || reason === 'nochange') {
                 const $next = $(this).closest('tr').next().find('.editable.locale-' + locale);
                 setTimeout(function () {

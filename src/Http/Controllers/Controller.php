@@ -63,10 +63,6 @@ class Controller extends BaseController
         }
 
         $groups = ['' => 'Choose a group'] + $groups;
-        $numChanged = Manager::translation()->query()
-            ->where('group', $group)
-            ->where('status', Manager::translation()::STATUS_CHANGED)
-            ->count();
 
         $allTranslations = Manager::translation()->query()
             ->where('group', $group)
@@ -104,7 +100,6 @@ class Controller extends BaseController
             ->with('groups', $groups)
             ->with('group', $group)
             ->with('numTranslations', $numTranslations)
-            ->with('numChanged', $numChanged)
             ->with('editUrl', $group ? action([Controller::class,'postEdit'], [$group]) : null)
             ->with('paginationEnabled', $this->manager->getConfig('pagination_enabled'))
             ->with('deleteEnabled', $this->manager->getConfig('delete_enabled'));
@@ -132,12 +127,12 @@ class Controller extends BaseController
 
             $keys = explode("\n", request()->get('keys'));
 
-        foreach ($keys as $key) {
-            $key = trim($key);
-            if ($group && $key) {
-                $this->manager->missingKey('*', $group, $key);
+            foreach ($keys as $key) {
+                $key = trim($key);
+                if ($group && $key) {
+                    $this->manager->missingKey('*', $group, $key);
+                }
             }
-        }
 
             return redirect()->back();
         } else {
@@ -168,7 +163,6 @@ class Controller extends BaseController
             }
 
             $translation->value = (string) $value ?: null;
-            $translation->status = Manager::translation()::STATUS_CHANGED;
 
             $translation->save();
 
@@ -216,11 +210,11 @@ class Controller extends BaseController
         if (Translator::checkExportPermission($request->user())) {
             $json = false;
 
-        if ('_json' === $group) {
-            $json = true;
-        }
+            if ('_json' === $group) {
+                $json = true;
+            }
 
-        $this->manager->exportTranslations($group, $json);
+            $this->manager->exportTranslations($group, $json);
 
             return ['status' => 'ok'];
         } else {

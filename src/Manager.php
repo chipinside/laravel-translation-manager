@@ -4,6 +4,7 @@ namespace Barryvdh\TranslationManager;
 
 use Barryvdh\TranslationManager\Events\TranslationsBeforeImportEvent;
 use Illuminate\Contracts\Filesystem\FileNotFoundException;
+use Illuminate\Support\Collection;
 use Lang;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
@@ -20,45 +21,21 @@ class Manager
 {
     public const JSON_GROUP = '_json';
 
-    /**
-     * @var Application
-     */
-    protected $app;
+    protected Application $app;
 
-    /**
-     * @var Filesystem
-     */
-    protected $files;
+    protected Filesystem $files;
 
-    /**
-     * @var Dispatcher
-     */
-    protected $events;
+    protected Dispatcher $events;
 
-    /**
-     * @var array
-     */
-    protected $config;
+    protected array $config;
 
-    /**
-     * @var array
-     */
-    protected $locales;
+    protected array $locales;
 
-    /**
-     * @var mixed
-     */
-    protected $ignoreLocales;
+    protected array $ignoreLocales;
 
-    /**
-     * @var string
-     */
-    protected $ignoreFilePath;
+    protected string $ignoreFilePath;
 
-    /**
-     * @var string
-     */
-    public static $translationModel = Translation::class;
+    public static string $translationModel = Translation::class;
 
     /**
      * @throws FileNotFoundException
@@ -119,6 +96,8 @@ class Manager
 
         $this->events->dispatch(new TranslationsBeforeImportEvent($replace, $base, $import_group));
 
+        $imports = [];
+
         foreach ($this->files->directories($base) as $langPath) {
             $locale = basename($langPath);
 
@@ -158,8 +137,11 @@ class Manager
 
                 if ($translations && is_array($translations)) {
                     foreach (Arr::dot($translations) as $key => $value) {
-                        $importedTranslation = $this->importTranslation($key, $value, $locale, $group, $replace);
-                        $counter += $importedTranslation ? 1 : 0;
+                        $translation = $this->importTranslation($key, $value, $locale, $group, $replace);
+                        if (!empty($translation)) {
+                            $imports[] = $translation;
+                            $counter++;
+                        }
                     }
                 }
             }
@@ -175,42 +157,36 @@ class Manager
                 Lang::getLoader()->load($locale, '*', '*'); // Retrieves JSON entries of the given locale only
             if ($translations && is_array($translations)) {
                 foreach ($translations as $key => $value) {
-                    $importedTranslation = $this->importTranslation($key, $value, $locale, $group, $replace);
-                    $counter += $importedTranslation ? 1 : 0;
+                    $translation = $this->importTranslation($key, $value, $locale, $group, $replace);
+                    if (!empty($translation)) {
+                        $imports[] = $translation;
+                        $counter++;
+                    }
                 }
             }
         }
 
+        collect($imports)->chunk(1000)->each(function (Collection $translations) {
+            static::translation()->upsert($translations->all(),['locale','group','key'],['value']);
+        });
+
         return $counter;
     }
 
-    public function importTranslation($key, $value, $locale, $group, $replace = false): bool
+    public function importTranslation($key, $value, $locale, $group, $replace = false): ?array
     {
         // process only string values
         if (is_array($value)) {
-            return false;
+            return null;
         }
         $value = (string) $value;
-        $translation = static::translation()->query()->firstOrNew([
+
+        return [
             'locale' => $locale,
             'group' => $group,
             'key' => $key,
-        ]);
-
-        // Check if the database is different from the files
-        $newStatus = $translation->value === $value ? static::translation()::STATUS_SAVED : static::translation()::STATUS_CHANGED;
-        if ($newStatus !== (int) $translation->status) {
-            $translation->status = $newStatus;
-        }
-
-        // Only replace when empty, or explicitly told so
-        if ($replace || !$translation->value) {
-            $translation->value = $value;
-        }
-
-        $translation->save();
-
-        return true;
+            'value' => $value
+        ];
     }
 
     public function findTranslations($path = null): int
@@ -373,14 +349,13 @@ class Manager
                         $this->files->put($path, $output);
                     }
                 }
-                static::translation()->query()->ofTranslatedGroup($group)->update(['status' => static::translation()::STATUS_SAVED]);
             }
         }
 
         if ($json) {
             $tree = $this->makeTree(static::translation()->query()->ofTranslatedGroup(self::JSON_GROUP)
-                                                ->orderByGroupKeys(Arr::get($this->config, 'sort_keys', false))
-                                                ->get(), true);
+                ->orderByGroupKeys(Arr::get($this->config, 'sort_keys', false))
+                ->get(), true);
 
             foreach ($tree as $locale => $groups) {
                 if (isset($groups[self::JSON_GROUP])) {
@@ -391,7 +366,6 @@ class Manager
                 }
             }
 
-            static::translation()->query()->ofTranslatedGroup(self::JSON_GROUP)->update(['status' => static::translation()::STATUS_SAVED]);
         }
 
         $this->events->dispatch(new TranslationsExportedEvent());
