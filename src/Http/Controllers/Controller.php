@@ -28,11 +28,10 @@ class Controller extends BaseController
      * @throws \Psr\Container\ContainerExceptionInterface
      * @throws \Psr\Container\NotFoundExceptionInterface
      */
-    public function getView($group = null)
+    public function getView(Request $request, $group = null)
     {
-        return $this->getIndex($group);
+        return $this->getIndex($request, $group);
     }
-
 
     /**
      * @param null $group
