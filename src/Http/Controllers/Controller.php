@@ -305,12 +305,7 @@ class Controller extends BaseController
                     'value' => $translated_text,
                     'name' => $newLocale.'|'.$base_string->key,
                 ]);
-                app()->call(
-                    'Barryvdh\TranslationManager\Controller@postEdit',
-                    [
-                        'group' => $group,
-                    ]
-                );
+                app()->call([Controller::class,'postEdit'],['group' => $group]);
             }
 
             return redirect()->back();
