@@ -61,5 +61,11 @@ class TranslationsServiceProvider extends ManagerApplicationServiceProvider
                 //
             ]);
         });
+
+        Gate::define('createTranslationKey', function ($user): bool {
+            return in_array($user->email, [
+                //
+            ]);
+        });
     }
 }

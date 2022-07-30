@@ -1,5 +1,6 @@
 <div class="bg-white border border-gray-300 overflow-hidden shadow rounded-lg my-2">
     <div class="px-4 py-5 sm:p-6">
+        @if(Translator::checkCreateKeyPermission($user))
         <form action="{{ action($controller.'@postAdd', [$group]) }}" method="POST" role="form" class="mb-4">
             @csrf()
             <div class="block text-sm font-medium text-gray-700 mb-1">Add new keys to this group:</div>
@@ -10,6 +11,7 @@
             <input type="submit" value="Add keys" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
         </form>
         <hr>
+        @endif
         <h4 class="font-medium text-xl my-4">Total: {{ $numTranslations }}, changed: {{ $numChanged }}</h4>
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">

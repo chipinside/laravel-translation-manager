@@ -46,6 +46,9 @@ class ManagerApplicationServiceProvider extends ServiceProvider
         Translator::authManageLocalesPermission(function ($user) {
             return Gate::check('manageTranslationsLocales', [$user]) || app()->environment('local');
         });
+        Translator::authCreateKeyPermission(function ($user) {
+            return Gate::check('createTranslationKey', [$user]) || app()->environment('local');
+        });
     }
 
     protected function setConnection(string $connection) {
@@ -92,6 +95,12 @@ class ManagerApplicationServiceProvider extends ServiceProvider
         });
 
         Gate::define('manageTranslationsLocales', function ($user): bool {
+            return in_array($user->email, [
+                //
+            ]);
+        });
+
+        Gate::define('createTranslationKey', function ($user): bool {
             return in_array($user->email, [
                 //
             ]);

@@ -3,6 +3,7 @@
 namespace Barryvdh\TranslationManager\Http\Controllers;
 
 use Barryvdh\TranslationManager\Manager;
+use Barryvdh\TranslationManager\Translator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -40,7 +41,7 @@ class Controller extends BaseController
      * @throws \Psr\Container\ContainerExceptionInterface
      * @throws \Psr\Container\NotFoundExceptionInterface
      */
-    public function getIndex($group = null)
+    public function getIndex(Request $request, $group = null)
     {
         $locales = $this->manager->getLocales();
         $groups = Manager::translation()->query()->groupBy('group');
@@ -53,6 +54,14 @@ class Controller extends BaseController
         if ($groups instanceof Collection) {
             $groups = $groups->all();
         }
+
+        if (!is_null($group) and
+            !in_array($group, $groups) and
+            !Translator::checkCreateGroupPermission($request->user())
+        ) {
+            abort(403);
+        }
+
         $groups = ['' => 'Choose a group'] + $groups;
         $numChanged = Manager::translation()->query()
             ->where('group', $group)
@@ -117,9 +126,11 @@ class Controller extends BaseController
         return array_unique($locales);
     }
 
-    public function postAdd($group = null): RedirectResponse
+    public function postAdd(Request $request, $group = null): RedirectResponse
     {
-        $keys = explode("\n", request()->get('keys'));
+        if (Translator::checkCreateGroupPermission($request->user())) {
+
+            $keys = explode("\n", request()->get('keys'));
 
         foreach ($keys as $key) {
             $key = trim($key);
@@ -128,7 +139,11 @@ class Controller extends BaseController
             }
         }
 
-        return redirect()->back();
+            return redirect()->back();
+        } else {
+            abort(403);
+        }
+
     }
 
     public function postEdit($group = null)
@@ -175,22 +190,31 @@ class Controller extends BaseController
 
     public function postImport(Request $request): array
     {
-        $replace = $request->get('replace', false);
-        $counter = $this->manager->importTranslations($replace);
+        if (Translator::checkImportPermission($request->user())) {
+            $replace = $request->get('replace', false);
+            $counter = $this->manager->importTranslations($replace);
 
-        return ['status' => 'ok', 'counter' => $counter];
+            return ['status' => 'ok', 'counter' => $counter];
+        } else {
+            abort(403);
+        }
     }
 
-    public function postFind(): array
+    public function postFind(Request $request): array
     {
-        $numFound = $this->manager->findTranslations();
+        if (Translator::checkFindPermission($request->user())) {
+            $numFound = $this->manager->findTranslations();
 
-        return ['status' => 'ok', 'counter' => (int) $numFound];
+            return ['status' => 'ok', 'counter' => (int)$numFound];
+        } else {
+            abort(403);
+        }
     }
 
-    public function postPublish($group = null): array
+    public function postPublish(Request $request, $group = null): array
     {
-        $json = false;
+        if (Translator::checkExportPermission($request->user())) {
+            $json = false;
 
         if ('_json' === $group) {
             $json = true;
@@ -198,17 +222,24 @@ class Controller extends BaseController
 
         $this->manager->exportTranslations($group, $json);
 
-        return ['status' => 'ok'];
+            return ['status' => 'ok'];
+        } else {
+            abort(403);
+        }
     }
 
     public function postAddGroup(Request $request): RedirectResponse
     {
-        $group = str_replace('.', '', $request->input('new-group'));
-        if ($group) {
-            return redirect()->action([Controller::class,'getView'], $group);
-        }
+        if (Translator::checkCreateGroupPermission($request->user())) {
+            $group = str_replace('.', '', $request->input('new-group'));
+            if ($group) {
+                return redirect()->action([Controller::class, 'getView'], $group);
+            }
 
-        return redirect()->back();
+            return redirect()->back();
+        } else {
+            abort(403);
+        }
     }
 
     /**
@@ -216,14 +247,18 @@ class Controller extends BaseController
      */
     public function postAddLocale(Request $request): RedirectResponse
     {
-        $locales = $this->manager->getLocales();
-        $newLocale = str_replace([], '-', trim($request->input('new-locale')));
-        if (!$newLocale || in_array($newLocale, $locales, true)) {
-            return redirect()->back();
-        }
-        $this->manager->addLocale($newLocale);
+        if (Translator::checkManageLocalesPermission($request->user())) {
+            $locales = $this->manager->getLocales();
+            $newLocale = str_replace([], '-', trim($request->input('new-locale')));
+            if (!$newLocale || in_array($newLocale, $locales, true)) {
+                return redirect()->back();
+            }
+            $this->manager->addLocale($newLocale);
 
-        return redirect()->back();
+            return redirect()->back();
+        } else {
+            abort(403);
+        }
     }
 
     /**
@@ -231,11 +266,16 @@ class Controller extends BaseController
      */
     public function postRemoveLocale(Request $request): RedirectResponse
     {
-        foreach ($request->input('remove-locale', []) as $locale => $val) {
-            $this->manager->removeLocale($locale);
+        if (Translator::checkManageLocalesPermission($request->user())) {
+            foreach ($request->input('remove-locale', []) as $locale => $val) {
+                $this->manager->removeLocale($locale);
+            }
+
+            return redirect()->back();
+        } else {
+            abort(403);
         }
 
-        return redirect()->back();
     }
 
     public function postTranslateMissing(Request $request): RedirectResponse

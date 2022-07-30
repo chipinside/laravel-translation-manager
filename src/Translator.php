@@ -37,6 +37,9 @@ class Translator extends LaravelTranslator
     /** @var Closure<Authenticatable>|null  */
     protected static Closure|null $checkManageLocalesPermissionUsing = null;
 
+    /** @var Closure<Authenticatable>|null  */
+    protected static Closure|null $checkCreateKeyPermissionUsing = null;
+
     /**
      * Set the callback that should be used to authenticate Translation Manager users.
      *
@@ -94,6 +97,15 @@ class Translator extends LaravelTranslator
     }
 
     /**
+     * @param Closure<Authenticatable> $callback
+     * @return void
+     */
+    public static function authCreateKeyPermission(Closure $callback): void
+    {
+        static::$checkCreateKeyPermissionUsing = $callback;
+    }
+
+    /**
      * Determine if the given request can access the Translation Manager.
      *
      * @param Request $request
@@ -147,6 +159,15 @@ class Translator extends LaravelTranslator
     public static function checkManageLocalesPermission(Authenticatable $user): bool
     {
         return (static::$checkManageLocalesPermissionUsing ?: fn () => false)($user);
+    }
+
+    /**
+     * @param Authenticatable $user
+     * @return bool
+     */
+    public static function checkCreateKeyPermission(Authenticatable $user): bool
+    {
+        return (static::$checkCreateKeyPermissionUsing ?: fn () => false)($user);
     }
 
 

@@ -1,5 +1,6 @@
 <div class="card mt-2 mb-4">
     <div class="card-body">
+        @if(Translator::checkCreateKeyPermission($user))
         <form action="{{ action($controller.'@postAdd', [$group]) }}" method="POST" role="form">
             @csrf()
             <div>Add new keys to this group:</div>
@@ -10,6 +11,7 @@
             <input type="submit" value="Add keys" class="btn btn-primary">
         </form>
         <hr>
+        @endif
         <h4>Total: {{ $numTranslations }}, changed: {{ $numChanged }}</h4>
         <table class="table">
             <thead>
