@@ -2,6 +2,7 @@
 
 namespace Barryvdh\TranslationManager;
 
+use Barryvdh\TranslationManager\Events\TranslationsAfterImportEvent;
 use Barryvdh\TranslationManager\Events\TranslationsBeforeImportEvent;
 use Illuminate\Contracts\Filesystem\FileNotFoundException;
 use Illuminate\Support\Collection;
@@ -137,7 +138,7 @@ class Manager
 
                 if ($translations && is_array($translations)) {
                     foreach (Arr::dot($translations) as $key => $value) {
-                        $translation = $this->importTranslation($key, $value, $locale, $group, $replace);
+                        $translation = $this->importTranslation($key, $value, $locale, $group);
                         if (!empty($translation)) {
                             $imports[] = $translation;
                             $counter++;
@@ -157,7 +158,7 @@ class Manager
                 Lang::getLoader()->load($locale, '*', '*'); // Retrieves JSON entries of the given locale only
             if ($translations && is_array($translations)) {
                 foreach ($translations as $key => $value) {
-                    $translation = $this->importTranslation($key, $value, $locale, $group, $replace);
+                    $translation = $this->importTranslation($key, $value, $locale, $group);
                     if (!empty($translation)) {
                         $imports[] = $translation;
                         $counter++;
@@ -166,14 +167,18 @@ class Manager
             }
         }
 
-        collect($imports)->chunk(1000)->each(function (Collection $translations) {
-            static::translation()->upsert($translations->all(),['locale','group','key'],['value']);
+        collect($imports)->chunk(1000)->each(function (Collection $translations) use ($replace) {
+            if ($replace) {
+                static::translation()->query()->upsert($translations->all(),['locale','group','key'],['value']);
+            } else {
+                static::translation()->query()->insertOrIgnore($translations->all());
+            }
         });
 
         return $counter;
     }
 
-    public function importTranslation($key, $value, $locale, $group, $replace = false): ?array
+    public function importTranslation($key, $value, $locale, $group): ?array
     {
         // process only string values
         if (is_array($value)) {
