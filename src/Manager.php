@@ -175,6 +175,9 @@ class Manager
             }
         });
 
+
+        $this->events->dispatch(new TranslationsAfterImportEvent($replace, $base, $import_group, $counter));
+
         return $counter;
     }
 
