@@ -4,6 +4,7 @@ namespace Barryvdh\TranslationManager\Console;
 
 use Illuminate\Console\Command;
 use Barryvdh\TranslationManager\Manager;
+use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputOption;
 
 class ImportCommand extends Command
@@ -39,7 +40,13 @@ class ImportCommand extends Command
     public function handle(): void
     {
         $replace = $this->option('replace');
-        $counter = $this->manager->importTranslations($replace);
+        $groups = $this->argument('group');
+        $counter = 0;
+        if (empty($groups)) {
+            $counter = $this->manager->importTranslations($replace);
+        } else foreach($groups as $group) {
+            $counter += $this->manager->importTranslations($replace,null,$group);
+        }
         $this->info('Done importing, processed '.$counter.' items!');
     }
 
@@ -50,6 +57,16 @@ class ImportCommand extends Command
     {
         return [
             ['replace', 'R', InputOption::VALUE_NONE, 'Replace existing keys'],
+        ];
+    }
+
+    /**
+     * Get the console command arguments.
+     */
+    protected function getArguments(): array
+    {
+        return [
+            ['group', InputArgument::IS_ARRAY + InputArgument::OPTIONAL]
         ];
     }
 }

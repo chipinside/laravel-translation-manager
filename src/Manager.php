@@ -105,7 +105,7 @@ class Manager
             //import langfiles for each vendor
             if ('vendor' === $locale) {
                 foreach ($this->files->directories($langPath) as $vendor) {
-                    $counter += $this->importTranslations($replace, $vendor);
+                    $counter += $this->importTranslations($replace, $vendor, $import_group);
                 }
 
                 continue;
@@ -148,20 +148,22 @@ class Manager
             }
         }
 
-        foreach ($this->files->files($this->app['path.lang']) as $jsonTranslationFile) {
-            if (!str_contains($jsonTranslationFile, '.json')) {
-                continue;
-            }
-            $locale = basename($jsonTranslationFile, '.json');
-            $group = self::JSON_GROUP;
-            $translations =
-                Lang::getLoader()->load($locale, '*', '*'); // Retrieves JSON entries of the given locale only
-            if ($translations && is_array($translations)) {
-                foreach ($translations as $key => $value) {
-                    $translation = $this->importTranslation($key, $value, $locale, $group);
-                    if (!empty($translation)) {
-                        $imports[] = $translation;
-                        $counter++;
+        if (!$import_group or in_array(['json','_json'], $import_group)) {
+            foreach ($this->files->files($this->app['path.lang']) as $jsonTranslationFile) {
+                if (!str_contains($jsonTranslationFile, '.json')) {
+                    continue;
+                }
+                $locale = basename($jsonTranslationFile, '.json');
+                $group = self::JSON_GROUP;
+                $translations =
+                    Lang::getLoader()->load($locale, '*', '*'); // Retrieves JSON entries of the given locale only
+                if ($translations && is_array($translations)) {
+                    foreach ($translations as $key => $value) {
+                        $translation = $this->importTranslation($key, $value, $locale, $group);
+                        if (!empty($translation)) {
+                            $imports[] = $translation;
+                            $counter++;
+                        }
                     }
                 }
             }
@@ -296,13 +298,15 @@ class Manager
         }
     }
 
-    protected function export($expression, $return=FALSE) {
-        $export = var_export($expression, TRUE);
-        $export = preg_replace("/^([ ]*)(.*)/m", '$1$1$2', $export);
-        $array = preg_split("/\r\n|\n|\r/", $export);
-        $array = preg_replace(["/\s*array\s\($/", "/\)(,)?$/", "/\s=>\s$/"], [NULL, ']$1', ' => ['], $array);
-        $export = join(PHP_EOL, array_filter(["["] + $array));
-        if ((bool)$return) return $export; else echo $export;
+    protected function export($expression): string {
+        $export = stripslashes(var_export($expression, TRUE));
+        $patterns = [
+            "/array \(/" => '[',
+            "/^([ ]*)\)(,?)$/m" => '$1]$2',
+            "/=>[ ]?\n[ ]+\[/" => '=> [',
+            "/([ ]*)(\'[^\']+\') => ([\[\'])/" => '$1$2 => $3',
+        ];
+        return preg_replace(array_keys($patterns), array_values($patterns), $export);
     }
 
     public function exportTranslations($group = null, $json = false): void
@@ -353,7 +357,7 @@ class Manager
 
                         $path .= DIRECTORY_SEPARATOR.$locale.DIRECTORY_SEPARATOR.$group.'.php';
 
-                        $output = "<?php\n\nreturn ".$this->export($translations, true).';'. PHP_EOL;
+                        $output = "<?php\n\nreturn ".$this->export($translations).';'. PHP_EOL;
                         $this->files->put($path, $output);
                     }
                 }
@@ -369,7 +373,7 @@ class Manager
                 if (isset($groups[self::JSON_GROUP])) {
                     $translations = $groups[self::JSON_GROUP];
                     $path = $this->app['path.lang'].'/'.$locale.'.json';
-                    $output = json_encode($translations, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+                    $output = json_encode($translations, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
                     $this->files->put($path, $output);
                 }
             }
