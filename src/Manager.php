@@ -310,12 +310,13 @@ class Manager
     }
 
     protected function export($expression): string {
-        $export = stripslashes(var_export($expression, TRUE));
+        $export = var_export($expression, TRUE);
         $patterns = [
             "/array \(/" => '[',
             "/^([ ]*)\)(,?)$/m" => '$1]$2',
             "/=>[ ]?\n[ ]+\[/" => '=> [',
             "/([ ]*)(\'[^\']+\') => ([\[\'])/" => '$1$2 => $3',
+            "/\\\\{2}/" => '\\'
         ];
         return preg_replace(array_keys($patterns), array_values($patterns), $export);
     }
