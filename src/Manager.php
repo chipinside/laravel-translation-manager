@@ -107,20 +107,17 @@ class Manager
                 foreach ($this->files->directories($langPath) as $vendor) {
                     $counter += $this->importTranslations($replace, $vendor, $import_group);
                 }
-
                 continue;
             }
+
+            if (in_array($locale, $this->config['exclude_langs'], true)) {
+                continue;
+            }
+
             $vendorName = $this->files->name($this->files->dirname($langPath));
             foreach ($this->files->allfiles($langPath) as $file) {
                 $info = pathinfo($file);
                 $group = $info['filename'];
-                if ($import_group && $import_group !== $group) {
-                    continue;
-                }
-
-                if (in_array($group, $this->config['exclude_groups'], true)) {
-                    continue;
-                }
                 $subLangPath = str_replace($langPath.DIRECTORY_SEPARATOR, '', $info['dirname']);
                 $subLangPath = str_replace(DIRECTORY_SEPARATOR, '/', $subLangPath);
                 $langPath = str_replace(DIRECTORY_SEPARATOR, '/', $langPath);
@@ -129,12 +126,21 @@ class Manager
                     $group = $subLangPath.'/'.$group;
                 }
 
-                if (!$vendor) {
-                    $translations = Lang::getLoader()->load($locale, $group);
-                } else {
-                    $translations = include $file;
+                if ($vendor) {
                     $group = 'vendor/'.$vendorName;
                 }
+
+                if ($import_group && $import_group !== $group) {
+                    continue;
+                }
+
+                if (in_array($group, $this->config['exclude_groups'], true)) {
+                    continue;
+                }
+
+                $translations = ($vendor)
+                    ? $translations = include $file
+                    : Lang::getLoader()->load($locale, $group);
 
                 if ($translations && is_array($translations)) {
                     foreach (Arr::dot($translations) as $key => $value) {
@@ -154,6 +160,11 @@ class Manager
                     continue;
                 }
                 $locale = basename($jsonTranslationFile, '.json');
+
+                if (in_array($locale, $this->config['exclude_langs'], true)) {
+                    continue;
+                }
+
                 $group = self::JSON_GROUP;
                 $translations =
                     Lang::getLoader()->load($locale, '*', '*'); // Retrieves JSON entries of the given locale only
