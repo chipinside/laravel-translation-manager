@@ -85,17 +85,33 @@ class Manager
         return ($result && is_array($result)) ? $result : [];
     }
 
-    public function importTranslations($replace = false, $base = null, $import_group = false): int
+    public function importTranslations($replace = false, $base = null, string|false $import_group = false): int
     {
-        $counter = 0;
+        $this->events->dispatch(new TranslationsBeforeImportEvent($replace, $base, $import_group));
+
+        $imports = collect($this->importTranslationBase($base, $import_group));
+
+        $imports->chunk(1000)->each(function (Collection $translations) use ($replace) {
+            if ($replace) {
+                static::translation()->query()->upsert($translations->all(), ['locale', 'group', 'key'], ['value']);
+            } else {
+                static::translation()->query()->insertOrIgnore($translations->all());
+            }
+        });
+
+        $this->events->dispatch(new TranslationsAfterImportEvent($replace, $base, $import_group, $imports->count()));
+
+        return $imports->count();
+    }
+
+    protected function importTranslationBase(?string $base, string|false $import_group): array
+    {
         //allows for vendor lang files to be properly recorded through recursion.
         $vendor = true;
         if (null === $base) {
             $base = $this->app['path.lang'];
             $vendor = false;
         }
-
-        $this->events->dispatch(new TranslationsBeforeImportEvent($replace, $base, $import_group));
 
         $imports = [];
 
@@ -105,7 +121,10 @@ class Manager
             //import langfiles for each vendor
             if ('vendor' === $locale) {
                 foreach ($this->files->directories($langPath) as $vendor) {
-                    $counter += $this->importTranslations($replace, $vendor, $import_group);
+                    $imports = array_merge(
+                        $this->importTranslationBase($vendor, $import_group),
+                        $imports,
+                    );
                 }
                 continue;
             }
@@ -118,16 +137,16 @@ class Manager
             foreach ($this->files->allfiles($langPath) as $file) {
                 $info = pathinfo($file);
                 $group = $info['filename'];
-                $subLangPath = str_replace($langPath.DIRECTORY_SEPARATOR, '', $info['dirname']);
+                $subLangPath = str_replace($langPath . DIRECTORY_SEPARATOR, '', $info['dirname']);
                 $subLangPath = str_replace(DIRECTORY_SEPARATOR, '/', $subLangPath);
                 $langPath = str_replace(DIRECTORY_SEPARATOR, '/', $langPath);
 
                 if ($subLangPath !== $langPath) {
-                    $group = $subLangPath.'/'.$group;
+                    $group = $subLangPath . '/' . $group;
                 }
 
                 if ($vendor) {
-                    $group = 'vendor/'.$vendorName;
+                    $group = 'vendor/' . $vendorName;
                 }
 
                 if ($import_group && $import_group !== $group) {
@@ -147,14 +166,13 @@ class Manager
                         $translation = $this->importTranslation($key, $value, $locale, $group);
                         if (!empty($translation)) {
                             $imports[] = $translation;
-                            $counter++;
                         }
                     }
                 }
             }
         }
 
-        if (!$import_group or in_array(['json','_json'], $import_group)) {
+        if (!$import_group || in_array($import_group, ['json', '_json'])) {
             foreach ($this->files->files($this->app['path.lang']) as $jsonTranslationFile) {
                 if (!str_contains($jsonTranslationFile, '.json')) {
                     continue;
@@ -173,28 +191,16 @@ class Manager
                         $translation = $this->importTranslation($key, $value, $locale, $group);
                         if (!empty($translation)) {
                             $imports[] = $translation;
-                            $counter++;
                         }
                     }
                 }
             }
         }
 
-        collect($imports)->chunk(1000)->each(function (Collection $translations) use ($replace) {
-            if ($replace) {
-                static::translation()->query()->upsert($translations->all(),['locale','group','key'],['value']);
-            } else {
-                static::translation()->query()->insertOrIgnore($translations->all());
-            }
-        });
-
-
-        $this->events->dispatch(new TranslationsAfterImportEvent($replace, $base, $import_group, $counter));
-
-        return $counter;
+        return $imports;
     }
 
-    public function importTranslation($key, $value, $locale, $group): ?array
+    protected function importTranslation($key, $value, $locale, $group): ?array
     {
         // process only string values
         if (is_array($value)) {
