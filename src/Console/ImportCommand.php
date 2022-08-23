@@ -40,12 +40,13 @@ class ImportCommand extends Command
     public function handle(): void
     {
         $replace = $this->option('replace');
+        $sync = $this->option('sync');
         $groups = $this->argument('group');
         $counter = 0;
         if (empty($groups)) {
-            $counter = $this->manager->importTranslations($replace);
+            $counter = $this->manager->importTranslations($replace, $sync);
         } else foreach($groups as $group) {
-            $counter += $this->manager->importTranslations($replace,null,$group);
+            $counter += $this->manager->importTranslations($replace, $sync, null, $group);
         }
         $this->info('Done importing, processed '.$counter.' items!');
     }
@@ -57,6 +58,7 @@ class ImportCommand extends Command
     {
         return [
             ['replace', 'R', InputOption::VALUE_NONE, 'Replace existing keys'],
+            ['sync', 'S', InputOption::VALUE_NONE, 'Remove non-existing keys'],
         ];
     }
 

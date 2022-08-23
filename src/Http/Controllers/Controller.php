@@ -184,8 +184,9 @@ class Controller extends BaseController
     public function postImport(Request $request): array
     {
         if (Translator::checkImportPermission($request->user())) {
-            $replace = $request->get('replace', false);
-            $counter = $this->manager->importTranslations($replace);
+            $replace = $request->get('replace', false);;
+            $sync = $request->get('sync', false);;
+            $counter = $this->manager->importTranslations($replace, $sync);
 
             return ['status' => 'ok', 'counter' => $counter];
         } else {

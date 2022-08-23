@@ -85,12 +85,17 @@ class Manager
         return ($result && is_array($result)) ? $result : [];
     }
 
-    public function importTranslations($replace = false, $base = null, string|false $import_group = false): int
+    public function importTranslations(bool $replace = false, bool $sync = false, string|null $base = null, string|false $import_group = false): int
     {
         $this->events->dispatch(new TranslationsBeforeImportEvent($replace, $base, $import_group));
 
         $imports = collect($this->importTranslationBase($base, $import_group));
 
+        if ($sync) {
+            static::translation()->query()
+                ->whereIn('group', $imports->groupBy('group')->keys()->all())
+                ->delete();
+        }
         $imports->chunk(1000)->each(function (Collection $translations) use ($replace) {
             if ($replace) {
                 static::translation()->query()->upsert($translations->all(), ['locale', 'group', 'key'], ['value']);

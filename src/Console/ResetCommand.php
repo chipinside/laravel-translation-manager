@@ -19,7 +19,7 @@ class ResetCommand extends Command
      *
      * @var string
      */
-    protected $description = 'Delete all translations from the database';
+    protected $description = /** @lang text */ 'Delete all translations from the database';
 
     /**
      * @var \Barryvdh\TranslationManager\Manager
