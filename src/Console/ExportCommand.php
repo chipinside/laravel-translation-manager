@@ -14,7 +14,7 @@ class ExportCommand extends Command
      *
      * @var string
      */
-    protected $name = 'translations:export {group}';
+    protected $name = 'translations:export';
 
     /**
      * The console command description.
@@ -39,31 +39,38 @@ class ExportCommand extends Command
      */
     public function handle(): void
     {
-        $group = $this->option('all') ? '*' : $this->argument('group');
+        $groups = $this->argument('group');
         $json = $this->option('json');
 
-        if (is_null($group) && !$json) {
-            $this->warn('You must either specify a group argument or export as --json');
+        $all = (empty($groups) and !$json);
 
-            return;
-        }
 
-        if (!is_null($group) && $json) {
-            $this->warn('You cannot use both group argument and --json option at the same time');
-
-            return;
-        }
-
-        if ('*' === $group) {
+        if ($all) {
             $this->manager->exportAllTranslations();
         } else {
-            $this->manager->exportTranslations($group, $json);
+            $groups = array_filter(array_merge($groups,[
+                $json ? Manager::JSON_GROUP : null
+            ]));
+            $this->manager->exportTranslations(...$groups);
         }
 
-        if (!is_null($group)) {
-            $this->info('Done writing language files for '.(('*' === $group) ? 'ALL groups' : $group.' group'));
-        } elseif ($json) {
+        if ($all) {
+            $this->info('Done writing language files for ALL groups');
+        } elseif ($json and (count($groups) === 1)) {
             $this->info('Done writing JSON language files for translation strings');
+        } elseif (!empty($groups)) {
+            if (in_array(Manager::JSON_GROUP, $groups)) {
+                unset($groups[array_search(Manager::JSON_GROUP,$groups)]);
+                $groups[] = 'the JSON language files for translation strings';
+            }
+            $this->info(sprintf('Done writing language files for group(s) %s',
+                implode(', ', array_reverse(
+                    array_merge(
+                        [implode(' and ', array_splice($groups,-2))],
+                        array_reverse($groups)
+                    )
+                ))
+            ));
         }
     }
 
@@ -73,7 +80,7 @@ class ExportCommand extends Command
     protected function getArguments(): array
     {
         return [
-            ['group', InputArgument::OPTIONAL, 'The group to export (--all for all).'],
+            ['group', InputArgument::IS_ARRAY + InputArgument::OPTIONAL, 'The groups to export (omit for all).'],
         ];
     }
 

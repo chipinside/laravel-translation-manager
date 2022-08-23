@@ -9,6 +9,9 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Filesystem\Filesystem;
 use Mockery\MockInterface;
 
+/**
+ * @covers \Barryvdh\TranslationManager\Manager
+ */
 class ManagerTest extends TestCase
 {
     protected Manager|MockInterface|null $manager;
@@ -22,6 +25,7 @@ class ManagerTest extends TestCase
             ->shouldReceive('exists')->andReturn(false);
         ($this->dispatcher = $this->mock(Dispatcher::class));
         $this->manager = \Mockery::mock(Manager::class, [app(),$this->filesystem,$this->dispatcher]);
+        $this->instance(Manager::class, $this->manager);
     }
 
     public function testResolveManager(): void

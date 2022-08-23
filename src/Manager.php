@@ -332,19 +332,22 @@ class Manager
         return preg_replace(array_keys($patterns), array_values($patterns), $export);
     }
 
-    public function exportTranslations($group = null, $json = false): void
+    public function exportTranslations(...$groups): void
+    {
+        foreach ($groups as $group) {
+            $this->exportTranslationsGroup($group);
+        }
+        $this->events->dispatch(new TranslationsExportedEvent());
+    }
+
+    public function exportTranslationsGroup($group = null): void
     {
         $group = basename($group);
         $basePath = $this->app['path.lang'];
 
-        if (!is_null($group) && !$json) {
+        if ($group !== self::JSON_GROUP) {
             if (!in_array($group, $this->config['exclude_groups'], true)) {
                 $vendor = false;
-                if ('*' === $group) {
-                    $this->exportAllTranslations();
-
-                    return;
-                }
 
                 if (Str::startsWith($group, 'vendor')) {
                     $vendor = true;
@@ -385,9 +388,7 @@ class Manager
                     }
                 }
             }
-        }
-
-        if ($json) {
+        } else {
             $tree = $this->makeTree(static::translation()->query()->ofTranslatedGroup(self::JSON_GROUP)
                 ->orderByGroupKeys(Arr::get($this->config, 'sort_keys', false))
                 ->get(), true);
@@ -400,23 +401,18 @@ class Manager
                     $this->files->put($path, $output);
                 }
             }
-
         }
-
-        $this->events->dispatch(new TranslationsExportedEvent());
     }
 
     public function exportAllTranslations(): void
     {
-        $groups = static::translation()->query()->whereNotNull('value')->selectDistinctGroup()->get('group');
-
-        foreach ($groups as $group) {
-            if (self::JSON_GROUP === $group->group) {
-                $this->exportTranslations(null, true);
-            } else {
-                $this->exportTranslations($group->group);
-            }
-        }
+        static::translation()->query()
+            ->distinct('group')
+            ->whereNotNull('value')
+            ->pluck('group')
+            ->each(fn($group) =>
+                $this->exportTranslations($group)
+            );
 
         $this->events->dispatch(new TranslationsExportedEvent());
     }
