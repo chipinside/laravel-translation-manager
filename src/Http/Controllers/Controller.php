@@ -4,16 +4,25 @@ namespace Barryvdh\TranslationManager\Http\Controllers;
 
 use Barryvdh\TranslationManager\Manager;
 use Barryvdh\TranslationManager\Translator;
+use DB;
+use Illuminate\Contracts\Filesystem\FileNotFoundException;
+use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Contracts\View\Factory;
+use Illuminate\Contracts\View\View;
+use Illuminate\Database\Query\Builder;
+use Illuminate\Database\Query\JoinClause;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Routing\Controller as BaseController;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
+use Psr\Container\ContainerExceptionInterface;
+use Psr\Container\NotFoundExceptionInterface;
 
 class Controller extends BaseController
 {
-    /** @var \Barryvdh\TranslationManager\Manager */
+    /** @var Manager */
     protected $manager;
 
     public function __construct(Manager $manager)
@@ -24,9 +33,9 @@ class Controller extends BaseController
     /**
      * @param null $group
      *
-     * @return \Illuminate\Contracts\Foundation\Application|\Illuminate\Contracts\View\Factory|\Illuminate\Contracts\View\View
-     * @throws \Psr\Container\ContainerExceptionInterface
-     * @throws \Psr\Container\NotFoundExceptionInterface
+     * @return Application|Factory|View
+     * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
      */
     public function getView(Request $request, $group = null)
     {
@@ -36,13 +45,12 @@ class Controller extends BaseController
     /**
      * @param null $group
      *
-     * @return \Illuminate\Contracts\Foundation\Application|\Illuminate\Contracts\View\Factory|\Illuminate\Contracts\View\View
-     * @throws \Psr\Container\ContainerExceptionInterface
-     * @throws \Psr\Container\NotFoundExceptionInterface
+     * @return Application|Factory|View
+     * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
      */
     public function getIndex(Request $request, $group = null)
     {
-        $locales = $this->manager->getLocales();
         $groups = Manager::translation()->query()->groupBy('group');
         $excludedGroups = $this->manager->getConfig('exclude_groups');
         if ($excludedGroups) {
@@ -63,23 +71,62 @@ class Controller extends BaseController
 
         $groups = ['' => 'Choose a group'] + $groups;
 
-        $allTranslations = Manager::translation()->query()
-            ->where('group', $group)
-            ->orderBy('key', 'asc')
-            ->get();
+        $custom_locales = $request->input('locale',false);
+        $locales = collect($custom_locales
+            ? $request->input('locale')
+            : $this->manager->getLocales());
 
-        $numTranslations = count($allTranslations);
-        $translations = [];
-        foreach ($allTranslations as $translation) {
-            $translations[$translation->key][$translation->locale] = $translation;
+        $table = Manager::translation()->getTable();
+        $query = DB::connection(Manager::translation()->getConnectionName())
+            ->table($table)
+            ->select([
+                "$table.key",
+                "$table.group"
+            ])
+            ->groupBy(["$table.group","$table.key"]);
+
+        $orderRaw = [];
+        $locales->each(function($locale) use ($query, $table, &$orderRaw) {
+            $query->addSelect([
+                "$locale.id as {$locale}_id",
+                "$locale.value as {$locale}_value"
+            ])->leftJoin("$table as $locale", function(JoinClause $join) use ($locale, $table){
+                $join->on("$locale.key",'=',"$table.key")
+                    ->where("$locale.locale",'=',$locale);
+            })->groupBy("$locale.id");
+            $orderRaw[] = "(trim(coalesce(\"$locale\".\"value\",'')) != '')";
+        });
+        $query->orderByRaw(join(' or ', $orderRaw));
+
+        $order = $request->input('order');
+        $desc = $request->input('desc',false) != false;
+        if ($order) {
+            $query->orderBy(DB::raw("lower(\"{$order}\".\"value\") collate \"POSIX\""),$desc ? 'desc' : 'asc');
         }
 
-        if ($this->manager->getConfig('pagination_enabled')) {
-            $total = count($translations);
+        $query->orderBy("$table.key");
+
+        $search = $request->input('search', false);
+
+        if ($search){
+            $escaped_search = preg_replace(['/%/','/_/','/\?/'],['\%','\_','\?'], $search);
+            $query->where(function(Builder $query) use ($table, $escaped_search, $locales) {
+                $query->whereRaw("\"$table\".\"key\" ilike concat('%', ?::TEXT, '%')", $escaped_search);
+                $locales->each(function($locale) use ($query, $escaped_search) {
+                    $query->orWhereRaw("\"$locale\".\"value\" ilike concat('%', ?::TEXT, '%')", $escaped_search);
+                });
+            });
+        }
+
+        $query->where("$table.group",'=',$group);
+        $numTranslations = $query->getCountForPagination();
+        $paginationEnabled = $this->manager->getConfig('pagination_enabled');
+
+        if ($paginationEnabled) {
             $page = request()->get('page', 1);
             $perPage = $this->manager->getConfig('per_page');
             $offSet = ($page * $perPage) - $perPage;
-            $itemsForCurrentPage = array_slice($translations, $offSet, $perPage, true);
+            $query->limit($perPage)->offset($offSet);
             $prefix = $this->manager->getConfig('route')['prefix'];
             $path = url("$prefix/view/$group");
 
@@ -88,14 +135,33 @@ class Controller extends BaseController
             } elseif ('bootstrap5' === $this->manager->getConfig('template')) {
                 LengthAwarePaginator::useBootstrap();
             }
+        }
 
-            $paginator = new LengthAwarePaginator($itemsForCurrentPage, $total, $perPage, $page);
-            $translations = $paginator->withPath($path);
+        $translations = $query->get()->mapWithKeys(function ($line) use ($locales) {
+            $return = [];
+            $locales->each(function($locale) use (&$return, $line) {
+                $id = "{$locale}_id";
+                $value = "{$locale}_value";
+                $return[$locale] = (object) [
+                    "id" => $line->$id,
+                    "value" => $line->$value,
+                ];
+            });
+            return [$line->key => $return];
+        });
+
+        if ($paginationEnabled) {
+            $paginator = new LengthAwarePaginator($translations, $numTranslations, $perPage, $page);
+            $translations = $paginator->withPath($path)->withQueryString();
         }
 
         return view('translation-manager::'.$this->manager->getConfig('template').'.index')
             ->with('translations', $translations)
+            ->with('custom_locales', $custom_locales)
             ->with('locales', $locales)
+            ->with('order', $order)
+            ->with('desc', $desc)
+            ->with('search', $search)
             ->with('groups', $groups)
             ->with('group', $group)
             ->with('numTranslations', $numTranslations)
@@ -184,8 +250,8 @@ class Controller extends BaseController
     public function postImport(Request $request): array
     {
         if (Translator::checkImportPermission($request->user())) {
-            $replace = $request->get('replace', false);;
-            $sync = $request->get('sync', false);;
+            $replace = $request->get('replace', false);
+            $sync = $request->get('sync', false);
             $counter = $this->manager->importTranslations($replace, $sync);
 
             return ['status' => 'ok', 'counter' => $counter];
@@ -237,7 +303,7 @@ class Controller extends BaseController
     }
 
     /**
-     * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
+     * @throws FileNotFoundException
      */
     public function postAddLocale(Request $request): RedirectResponse
     {
@@ -256,7 +322,7 @@ class Controller extends BaseController
     }
 
     /**
-     * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
+     * @throws FileNotFoundException
      */
     public function postRemoveLocale(Request $request): RedirectResponse
     {
