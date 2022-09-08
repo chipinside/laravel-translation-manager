@@ -96,7 +96,7 @@ class Controller extends BaseController
             })->groupBy("$locale.id");
             $orderRaw[] = "(trim(coalesce(\"$locale\".\"value\",'')) != '')";
         });
-        $query->orderByRaw(join(' or ', $orderRaw));
+        $query->orderByRaw(join(' and ', $orderRaw));
 
         $order = $request->input('order');
         $desc = $request->input('desc',false) != false;
