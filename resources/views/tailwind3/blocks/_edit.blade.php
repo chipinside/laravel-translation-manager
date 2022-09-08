@@ -66,7 +66,7 @@
                             </div>
                             <!-- Modal footer -->
                             <div class="flex justify-between items-center p-6 space-x-2 rounded-b border-t border-gray-200">
-                                <button data-modal-toggle="locale-modal" class="text-blue border border-gray-300 rounded-lg text-sm px-5 py-2.5 text-center">Cancel</button>
+                                <button type="button" data-modal-toggle="locale-modal" class="text-blue border border-gray-300 rounded-lg text-sm px-5 py-2.5 text-center">Cancel</button>
                                 <button type="submit" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 rounded-lg text-sm px-5 py-2.5 text-center">Filter</button>
                             </div>
                         </form>
