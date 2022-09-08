@@ -159,10 +159,24 @@ class Controller extends BaseController
             $translations = $paginator->withPath($path)->withQueryString();
         }
 
+        $sql = vsprintf(
+            str_replace('?', '%s', $query->toSql()),
+            collect($query->getBindings())->map(function($binding) {
+                if (is_bool($binding)){
+                    return ($binding) ? 'true' : 'false';
+                } elseif (is_numeric($binding)) {
+                    return (string) $binding;
+                } else {
+                    return sprintf("'%s'",(string) $binding);
+                }
+            })->toArray()
+        );
+
         return view('translation-manager::'.$this->manager->getConfig('template').'.index')
             ->with('translations', $translations)
             ->with('custom_locales', $custom_locales)
             ->with('locales', $locales)
+            ->with('query', $sql)
             ->with('order', $order)
             ->with('desc', $desc)
             ->with('search', $search)
