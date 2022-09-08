@@ -101,7 +101,11 @@ class Controller extends BaseController
         $order = $request->input('order');
         $desc = $request->input('desc',false) != false;
         if ($order) {
-            $query->orderBy(DB::raw("lower(\"{$order}\".\"value\") collate \"POSIX\""),$desc ? 'desc' : 'asc');
+            if (strtolower($order) == 'key') {
+                $query->orderBy(DB::raw("lower(\"{$table}\".\"key\") collate \"POSIX\""),$desc ? 'desc' : 'asc');
+            } else {
+                $query->orderBy(DB::raw("lower(\"{$order}\".\"value\") collate \"POSIX\""),$desc ? 'desc' : 'asc');
+            }
         }
 
         $query->orderBy("$table.key");
