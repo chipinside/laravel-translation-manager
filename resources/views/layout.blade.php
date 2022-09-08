@@ -25,6 +25,7 @@
                   crossorigin="anonymous">
         @break
         @case('tailwind3')
+            <link rel="stylesheet" href="https://unpkg.com/flowbite@1.5.3/dist/flowbite.min.css" />
             <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio,line-clamp"></script>
             <style>
                 .form-floating {
@@ -48,6 +49,15 @@
                 .form-floating>.form-control:focus~label {
                     opacity: .65;
                     transform: scale(.85) translateY(-0.5rem) translateX(0.15rem);
+                }
+                span[aria-current="page"] > span {
+                    background-color: #d1d5db;
+                }
+                .editable-container.editable-inline{
+                    width: 100% !important;
+                }
+                .editable-container.editable-inline .editable-input{
+                    width: 100%;
                 }
             </style>
             <script>
@@ -95,6 +105,7 @@
                         crossorigin="anonymous"></script>
             @break
             @case('tailwind3')
+                <script src="https://unpkg.com/flowbite@1.5.3/dist/flowbite.js"></script>
                 <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"
                         integrity="sha384-vtXRMe3mGCbOeY7l30aIg8H9p3GdeSe4IFlP6G8JMa7o7lXvnz3GFKzPxzJdPfGK"
                         crossorigin="anonymous"></script>

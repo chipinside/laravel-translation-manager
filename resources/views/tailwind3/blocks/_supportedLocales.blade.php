@@ -9,7 +9,7 @@
                   data-confirm="Are you sure to remove this locale and all of data?" aria-label="Remove Locale">
                 @csrf()
                 <ul class="list-locales list-disc list-inside pl-8">
-                    @foreach($locales as $locale)
+                    @foreach($all_locales as $locale)
                         <li class="mb-3 flex items-center">
                             <span class="mr-2">{{ $locale }}</span>
                             <button type="submit" name="remove-locale[{{ $locale }}]" class="text-red-600 p-0" data-disable-with="...">
