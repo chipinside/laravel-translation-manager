@@ -72,9 +72,10 @@ class Controller extends BaseController
         $groups = ['' => 'Choose a group'] + $groups;
 
         $custom_locales = $request->input('locale',false);
+        $all_locales = $this->manager->getLocales();
         $locales = collect($custom_locales
             ? $request->input('locale')
-            : $this->manager->getLocales());
+            : $all_locales);
 
         $table = Manager::translation()->getTable();
         $query = DB::connection(Manager::translation()->getConnectionName())
@@ -100,7 +101,7 @@ class Controller extends BaseController
 
         $order = $request->input('order');
         $desc = $request->input('desc',false) != false;
-        if ($order) {
+        if ($order and $locales->contains($order)) {
             if (strtolower($order) == 'key') {
                 $query->orderBy(DB::raw("lower(\"{$table}\".\"key\") collate \"POSIX\""),$desc ? 'desc' : 'asc');
             } else {
@@ -159,24 +160,11 @@ class Controller extends BaseController
             $translations = $paginator->withPath($path)->withQueryString();
         }
 
-        $sql = vsprintf(
-            str_replace('?', '%s', $query->toSql()),
-            collect($query->getBindings())->map(function($binding) {
-                if (is_bool($binding)){
-                    return ($binding) ? 'true' : 'false';
-                } elseif (is_numeric($binding)) {
-                    return (string) $binding;
-                } else {
-                    return sprintf("'%s'",(string) $binding);
-                }
-            })->toArray()
-        );
-
         return view('translation-manager::'.$this->manager->getConfig('template').'.index')
             ->with('translations', $translations)
             ->with('custom_locales', $custom_locales)
             ->with('locales', $locales)
-            ->with('query', $sql)
+            ->with('all_locales', $all_locales)
             ->with('order', $order)
             ->with('desc', $desc)
             ->with('search', $search)
