@@ -175,18 +175,68 @@
                     @endforeach
                     @if ($deleteEnabled)
                     <td class="text-right">
-                        <a href="{{ action($controller . '@postDelete', [$group, $key]) }}"
-                        class="delete-key inline-flex justify-center py-2 px-4 border border-transparent text-sm font-medium text-red-600 hover:text-red-700 focus:outline-none"
-                        data-confirm="Are you sure you want to delete the translations for '{{ $key }}'?">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                        </svg>
-                    </a>
-                </td>
-                @endif
-            </tr>
-            @endforeach
-        </tbody>
-    </table>
+                        <button  data-modal-toggle="delete-modal-{{$key}}" type="button" class="text-red-600">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                        </button>
+                        <div id="delete-modal-{{$key}}" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 w-full md:inset-0 h-modal md:h-full justify-center items-center">
+                            <div class="relative p-4 w-full max-w-xl h-full md:h-auto">
+                                <!-- Modal content -->
+                                <div class="relative bg-white border rounded-2xl shadow overflow-hidden">
+                                    <!-- Modal body -->
+                                    <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                                        <div class="sm:flex sm:items-start">
+                                            <div class="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                                                <svg class="h-6 w-6 text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 10.5v3.75m-9.303 3.376C1.83 19.126 2.914 21 4.645 21h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 4.88c-.866-1.501-3.032-1.501-3.898 0L2.697 17.626zM12 17.25h.007v.008H12v-.008z" />
+                                                </svg>
+                                            </div>
+                                            <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                                                <h3 class="text-lg font-medium leading-6 text-gray-900" id="modal-title">Delete Key</h3>
+                                                <div class="my-3">
+                                                    <p class="text-sm text-gray-500">Are you sure you want to delete the translation <strong class="text-sm text-gray-600">{{ $key }}</strong>?</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Modal footer -->
+                                    <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+                                        <button data-key="{{ $key }}" data-url="{{ action($controller . '@postDelete', [$group, $key]) }}" data-modal-toggle="delete-modal-{{$key}}" class="delete-key inline-flex w-full justify-center rounded-md border border-transparent bg-red-600 px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm" >Deletar</button>
+                                        <button type="button" data-modal-toggle="delete-modal-{{$key}}" class="mt-3 inline-flex w-full justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">Cancel</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    @endif
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
 </div>
-</div>
+@push('scripts')
+<script  type="text/javascript">
+    $(document).ready(function(){
+    $(".delete-key").click(function(event) {
+        var key = event.target.getAttribute("data-key")
+        var url = event.target.getAttribute("data-url")
+        event.preventDefault();
+        $.ajax({
+            type: "POST",
+            url: url,
+            data: {
+                id: key
+            },
+            success: function(result) {
+                document.getElementById(key).remove()
+            },
+            error: function(result) {
+                alert('Error to delete key, try again.');
+            }
+        });
+    });
+    });
+</script>
+@endpush
