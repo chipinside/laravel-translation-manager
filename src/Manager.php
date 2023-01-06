@@ -3,6 +3,7 @@
 namespace Barryvdh\TranslationManager;
 
 use Barryvdh\TranslationManager\Events\TranslationsAfterImportEvent;
+use Barryvdh\TranslationManager\Events\TranslationsBeforeExportEvent;
 use Barryvdh\TranslationManager\Events\TranslationsBeforeImportEvent;
 use Illuminate\Contracts\Filesystem\FileNotFoundException;
 use Illuminate\Support\Collection;
@@ -14,7 +15,7 @@ use Illuminate\Filesystem\Filesystem;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Contracts\Foundation\Application;
 use Barryvdh\TranslationManager\Models\Translation;
-use Barryvdh\TranslationManager\Events\TranslationsExportedEvent;
+use Barryvdh\TranslationManager\Events\TranslationsAfterExportEvent;
 use Symfony\Component\Finder\SplFileInfo;
 use const PHP_EOL;
 
@@ -334,10 +335,13 @@ class Manager
 
     public function exportTranslations(...$groups): void
     {
+        $this->events->dispatch(new TranslationsBeforeExportEvent($groups));
+
         foreach ($groups as $group) {
             $this->exportTranslationsGroup($group);
         }
-        $this->events->dispatch(new TranslationsExportedEvent());
+
+        $this->events->dispatch(new TranslationsAfterExportEvent($groups));
     }
 
     public function exportTranslationsGroup($group = null): void
@@ -406,15 +410,13 @@ class Manager
 
     public function exportAllTranslations(): void
     {
-        static::translation()->query()
+        $groups = static::translation()->query()
             ->distinct('group')
             ->whereNotNull('value')
             ->pluck('group')
-            ->each(fn($group) =>
-                $this->exportTranslations($group)
-            );
+            ->toArray();
 
-        $this->events->dispatch(new TranslationsExportedEvent());
+        $this->exportTranslations(...$groups);
     }
 
     protected function makeTree($translations, $json = false): array

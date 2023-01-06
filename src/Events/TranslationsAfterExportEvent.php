@@ -8,12 +8,13 @@
 
 namespace Barryvdh\TranslationManager\Events;
 
-class TranslationsExportedEvent
+class TranslationsAfterExportEvent
 {
     /**
      * Create a new event instance.
+     * @param string[] $groups
      */
-    public function __construct()
-    {
-    }
+    public function __construct(
+        public readonly array $groups,
+    ) {}
 }
