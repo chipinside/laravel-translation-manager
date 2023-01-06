@@ -3,6 +3,7 @@
 namespace Barryvdh\TranslationManager;
 
 use Barryvdh\TranslationManager\Events\TranslationsAfterImportEvent;
+use Barryvdh\TranslationManager\Events\TranslationsAfterPublish;
 use Barryvdh\TranslationManager\Events\TranslationsBeforeExportEvent;
 use Barryvdh\TranslationManager\Events\TranslationsBeforeImportEvent;
 use Illuminate\Contracts\Filesystem\FileNotFoundException;
@@ -406,6 +407,16 @@ class Manager
                 }
             }
         }
+    }
+
+    public function publish(?string $group = null): void
+    {
+        if (is_null($group)) {
+            $this->exportAllTranslations();
+        } else {
+            $this->exportTranslations($group);
+        }
+        $this->events->dispatch(new TranslationsAfterPublish($group));
     }
 
     public function exportAllTranslations(): void

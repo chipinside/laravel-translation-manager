@@ -280,13 +280,7 @@ class Controller extends BaseController
     public function postPublish(Request $request, $group = null): array
     {
         if (Translator::checkExportPermission($request->user())) {
-
-            if ($group === '*') {
-                $this->manager->exportAllTranslations();
-            } else {
-                $this->manager->exportTranslations($group);
-            }
-
+            $this->manager->publish($group !== '*' ? $group : null);
             return ['status' => 'ok'];
         } else {
             abort(403);
